@@ -7,7 +7,18 @@ import type { AppDispatch, RootState } from '../store';
 import type { IAction, IGoal } from '../types';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowUpIcon, ArrowDownIcon, UserCircleIcon, CheckCircleIcon, ListBulletIcon, CalendarDaysIcon, TagIcon, TrophyIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { 
+    UserCircleIcon, 
+    CheckCircleIcon, 
+    ListBulletIcon, 
+    CalendarDaysIcon, 
+    TagIcon, 
+    TrophyIcon, 
+    SparklesIcon, 
+    ArrowPathIcon, // For streak/level?
+    PlusCircleIcon, // For logging actions
+    InformationCircleIcon // For motivational quote
+} from '@heroicons/react/24/outline';
 
 // Helper to format date
 const formatDate = (dateString: string) => {
@@ -33,6 +44,9 @@ export default function Dashboard() {
   const { actions, loading: actionsLoading, error: actionsError } = useSelector((state: RootState) => state.actions);
   const { goals, loading: goalsLoading, error: goalsError } = useSelector((state: RootState) => state.goals);
   const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
+
+  // --- TODO: State for showing the Action Logging Modal ---
+  // const [showActionForm, setShowActionForm] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -81,19 +95,13 @@ export default function Dashboard() {
   // Calculate derived stats
   const totalPoints = user?.points || 0;
   const level = calculateLevel(totalPoints);
-  const pointsRemaining = pointsToNextLevel(totalPoints);
+  // const pointsRemaining = pointsToNextLevel(totalPoints); // Can be used if needed
   const completedGoals = goals.filter(g => g.completed).length;
   const activeGoals = goals.length - completedGoals;
-  const recentActions = actions.slice().sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5); // Sort and take 5 most recent
+  const recentActions = actions.slice().sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 3); // Show fewer recent actions
 
-  // Stats cards data
-  const stats = [
-    { name: 'Current Level', stat: level, icon: TrophyIcon, change: '' },
-    { name: 'Total Points', stat: totalPoints, icon: SparklesIcon, change: '' },
-    { name: `Points to Level ${level + 1}`, stat: pointsRemaining, icon: SparklesIcon, change: 'remaining' },
-    { name: 'Completed Goals', stat: completedGoals, icon: CheckCircleIcon, change: '' },
-    { name: 'Active Goals', stat: activeGoals, icon: ListBulletIcon, change: '' },
-  ];
+  // Placeholder for motivational quote
+  const motivationalQuote = "The greatest threat to our planet is the belief that someone else will save it." // Replace with dynamic quote/stat
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
@@ -102,148 +110,192 @@ export default function Dashboard() {
         <p className="text-lg text-emerald-700 font-semibold">Welcome back, {user?.name || 'User'}!</p>
       </motion.div>
 
-      {/* Stats Grid */}
-      <motion.div 
-        className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-        initial="hidden" 
-        animate="visible" 
-        variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-       >
-        {stats.map((item) => (
-          <motion.div
-            key={item.name}
-            variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-            className="bg-white overflow-hidden shadow rounded-lg p-5 flex flex-col"
-          >
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <item.icon className="h-6 w-6 text-gray-400" aria-hidden="true" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">{item.name}</dt>
-                  <dd className="flex items-baseline">
-                    <p className="text-2xl font-semibold text-gray-900">{item.stat}</p>
-                    {item.change && item.change !== 'remaining' && (
-                       <p className={`ml-2 flex items-baseline text-sm font-semibold ${item.change > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {item.change > 0 ? (
-                          <ArrowUpIcon className="h-5 w-5 flex-shrink-0 self-center text-emerald-500" aria-hidden="true" />
-                        ) : (
-                          <ArrowDownIcon className="h-5 w-5 flex-shrink-0 self-center text-red-500" aria-hidden="true" />
-                        )}
-                         {item.change > 0 ? '+' : ''}{item.change}
-                      </p>
-                    )}
-                     {item.change === 'remaining' && (
-                         <p className="ml-1 text-xs font-medium text-gray-500"> points</p>
-                     )}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* Recent Activities & Goals Overview */} 
+      {/* Main Dashboard Grid - Reorganized */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activities */}
-        <motion.div 
-            initial={{ opacity: 0, x: -20 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="lg:col-span-2 bg-white shadow rounded-lg p-6"
-        >
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Activities</h2>
-          {actionsError && <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">Error loading activities: {actionsError}</div>}
-          {actionsLoading && recentActions.length === 0 && <div className="text-gray-500 text-sm">Loading activities...</div>}
-          {!actionsLoading && recentActions.length === 0 && !actionsError && (
-              <div className="text-center text-gray-500 py-6">
-                  <ListBulletIcon className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                  <p>No actions logged yet.</p>
-                  <Link to="/actions">
-                       <button className="mt-4 px-4 py-1.5 text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm font-medium">
-                            Log your first action!
-                       </button>
-                   </Link>
-              </div>
-          )}
-          {recentActions.length > 0 && (
-            <ul className="space-y-4">
-              {recentActions.map((action: IAction) => (
-                <li key={action._id} className="flex items-center justify-between space-x-3 border-b border-gray-100 pb-3 last:border-b-0">
-                  <div className="flex items-center space-x-3 min-w-0">
-                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-xl flex-shrink-0">
-                      {action.icon || '✨'}
+        
+        {/* Left Column: Core Stats & Logging */}
+        <div className="lg:col-span-2 space-y-6">
+            {/* Impact Score / Level / Streak */} 
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }}
+                className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-6 rounded-lg shadow-lg flex flex-col sm:flex-row justify-between items-center"
+            >
+                 <div>
+                    <p className="text-sm uppercase tracking-wide opacity-80 mb-1">Your Impact Level</p>
+                    <p className="text-4xl font-bold">Level {level}</p>
+                    <p className="text-sm opacity-90 mt-1">{totalPoints} total points</p>
+                 </div>
+                 <div className="mt-4 sm:mt-0 sm:text-right">
+                     {/* Placeholder for Streak */} 
+                    <div className="flex items-center justify-end space-x-2">
+                        <ArrowPathIcon className="h-6 w-6 opacity-80"/>
+                        <p className="text-lg font-semibold">Streak: 5 days</p> 
                     </div>
-                    <div className="min-w-0 flex-grow">
-                      <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
-                      <p className="text-xs text-gray-500 flex items-center mt-0.5">
-                        <CalendarDaysIcon className="h-3.5 w-3.5 mr-1 opacity-70" />
-                        {formatDate(action.timestamp)}
-                      </p>
+                    {/* Placeholder for Today's Score - More complex calculation needed */}
+                     <p className="text-sm opacity-80 mt-1">Today's Score: +15 pts</p>
+                 </div>
+            </motion.div>
+
+            {/* Log Actions Area */} 
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.5 }}
+                className="bg-white p-6 rounded-lg shadow"
+            >
+                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Log Your Actions</h2>
+                 <p className="text-sm text-gray-600 mb-5">Quickly log your sustainable activities for the day.</p>
+                 {/* Placeholder: Icon-based logging options or checklist */} 
+                 <div className="flex flex-wrap justify-center gap-4 mb-5">
+                     <button className="flex flex-col items-center p-3 space-y-1 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors">
+                         <span className="text-3xl">🚲</span>
+                         <span className="text-xs font-medium">Travel</span>
+                     </button>
+                      <button className="flex flex-col items-center p-3 space-y-1 text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                         <span className="text-3xl">💧</span>
+                         <span className="text-xs font-medium">Water</span>
+                     </button>
+                      <button className="flex flex-col items-center p-3 space-y-1 text-yellow-700 hover:bg-yellow-50 rounded-lg transition-colors">
+                         <span className="text-3xl">💡</span>
+                         <span className="text-xs font-medium">Energy</span>
+                     </button>
+                     <button className="flex flex-col items-center p-3 space-y-1 text-purple-700 hover:bg-purple-50 rounded-lg transition-colors">
+                         <span className="text-3xl">🛍️</span>
+                         <span className="text-xs font-medium">Waste</span>
+                     </button>
+                 </div>
+                 <button 
+                    // onClick={() => setShowActionForm(true)} // TODO: Link to modal/page
+                    className="w-full flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
+                 >
+                    <PlusCircleIcon className="h-5 w-5 mr-2" />
+                    Log Other Activity
+                 </button>
+                 {/* TODO: Add ActionForm Modal conditionally rendered based on showActionForm state */} 
+                 {/* {showActionForm && <ActionForm onClose={() => setShowActionForm(false)} />} */} 
+            </motion.div>
+
+             {/* Motivational Quote/Stat */} 
+             <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }}
+                className="bg-teal-50 border-l-4 border-teal-400 p-4 rounded-r-lg"
+             >
+                <div className="flex">
+                    <div className="flex-shrink-0">
+                        <InformationCircleIcon className="h-5 w-5 text-teal-500" aria-hidden="true" />
                     </div>
-                  </div>
-                  <div className="flex flex-col items-end flex-shrink-0 ml-4">
-                     <span className="text-sm font-semibold text-emerald-600 whitespace-nowrap">+{action.points} pts</span>
-                     <p className="text-xs text-gray-400 flex items-center mt-0.5">
-                         <TagIcon className="h-3 w-3 mr-1 opacity-70"/> {action.category}
-                     </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-           {actions.length > 5 && (
-                <div className="mt-6 text-center">
-                    <Link to="/actions" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
-                        View All Actions &rarr;
+                    <div className="ml-3">
+                        <p className="text-sm text-teal-700">
+                        {motivationalQuote}
+                        </p>
+                    </div>
+                </div>
+             </motion.div>
+
+        </div>
+
+        {/* Right Column: Goals & Recent Activity */}
+        <div className="space-y-6">
+            {/* Weekly Goals Overview */} 
+             <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.5 }}
+                className="bg-white shadow rounded-lg p-6"
+            >
+                 <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-800">Weekly Goals</h2>
+                     <Link to="/goals" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
+                        View All &rarr;
                     </Link>
                 </div>
-            )}
-        </motion.div>
+                 {goalsError && <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">Error loading goals: {goalsError}</div>}
+                 {goalsLoading && goals.length === 0 && <div className="text-gray-500 text-sm">Loading goals...</div>}
+                 {!goalsLoading && goals.length === 0 && !goalsError && (
+                     <div className="text-center text-gray-500 py-6">
+                         <CheckCircleIcon className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                         <p>No goals set yet.</p>
+                         <Link to="/goals">
+                         <button className="mt-4 px-4 py-1.5 text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm font-medium">
+                                Set your first goal!
+                         </button>
+                     </Link>
+                     </div>
+                 )}
+                 {goals.length > 0 && (
+                     <ul className="space-y-3">
+                         {/* Show maybe 2-3 active goals */} 
+                        {goals.filter(g => !g.completed).slice(0, 3).map((goal: IGoal) => (
+                            <li key={goal._id} className="flex items-center space-x-3 text-sm">
+                            <CheckCircleIcon className={`h-5 w-5 flex-shrink-0 ${goal.completed ? 'text-emerald-500' : 'text-gray-300'}`} />
+                            <div className="flex-grow">
+                                <span className={`truncate ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>{goal.title}</span>
+                                {/* Simple Progress Bar */} 
+                                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-gray-200 mt-1">
+                                    <div
+                                    className={`absolute h-full rounded-full ${goal.completed ? 'bg-emerald-500' : 'bg-emerald-400'}`}
+                                    style={{ width: `${(goal.progress / goal.target) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <span className="text-xs text-gray-400 whitespace-nowrap ml-2">{goal.progress}/{goal.target}</span>
+                            </li>
+                        ))}
+                         {goals.filter(g => !g.completed).length === 0 && goals.length > 0 && (
+                            <p className="text-sm text-gray-500 text-center py-4">All active goals completed this week!</p>
+                         )} 
+                     </ul>
+                 )}
+            </motion.div>
 
-        {/* Quick Goals Overview */}
-         <motion.div 
-            initial={{ opacity: 0, x: 20 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="bg-white shadow rounded-lg p-6"
-        >
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Goals Status</h2>
-            {goalsError && <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">Error loading goals: {goalsError}</div>}
-            {goalsLoading && goals.length === 0 && <div className="text-gray-500 text-sm">Loading goals...</div>}
-            {!goalsLoading && goals.length === 0 && !goalsError && (
-                <div className="text-center text-gray-500 py-6">
-                    <CheckCircleIcon className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                    <p>No goals set yet.</p>
-                     <Link to="/goals">
-                       <button className="mt-4 px-4 py-1.5 text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm font-medium">
-                            Set your first goal!
-                       </button>
-                   </Link>
-                </div>
-            )}
-            {goals.length > 0 && (
-                 <ul className="space-y-3">
-                    {goals.slice(0, 5).map((goal: IGoal) => (
-                        <li key={goal._id} className="flex items-center space-x-3 text-sm">
-                           <CheckCircleIcon className={`h-5 w-5 flex-shrink-0 ${goal.completed ? 'text-emerald-500' : 'text-gray-300'}`} />
-                           <span className={`flex-grow truncate ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>{goal.title}</span>
-                           <span className="text-xs text-gray-400 whitespace-nowrap">{goal.progress}/{goal.target}</span>
+            {/* Recent Activities */} 
+             <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}
+                className="bg-white shadow rounded-lg p-6"
+            >
+                 <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-800">Recent Activity</h2>
+                    {actions.length > 3 && (
+                         <Link to="/actions" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
+                            View All &rarr;
+                        </Link>
+                    )} 
+                 </div>
+                 {actionsError && <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">Error loading activities: {actionsError}</div>}
+                 {actionsLoading && recentActions.length === 0 && <div className="text-gray-500 text-sm">Loading activities...</div>}
+                 {!actionsLoading && recentActions.length === 0 && !actionsError && (
+                     <div className="text-center text-gray-500 py-6">
+                         <ListBulletIcon className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                         <p>No actions logged yet.</p>
+                         {/* Link to Log Action Modal/Page? */} 
+                     </div>
+                 )}
+                 {recentActions.length > 0 && (
+                    <ul className="space-y-4">
+                    {recentActions.map((action: IAction) => (
+                        <li key={action._id} className="flex items-center justify-between space-x-3 border-b border-gray-100 pb-3 last:border-b-0">
+                        <div className="flex items-center space-x-3 min-w-0">
+                            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-lg flex-shrink-0">
+                            {action.icon || '✨'}
+                            </div>
+                            <div className="min-w-0 flex-grow">
+                            <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
+                            <p className="text-xs text-gray-500 flex items-center mt-0.5">
+                                <CalendarDaysIcon className="h-3.5 w-3.5 mr-1 opacity-70" />
+                                {formatDate(action.timestamp)} 
+                            </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-end flex-shrink-0 ml-4">
+                            <span className="text-sm font-semibold text-emerald-600 whitespace-nowrap">+{action.points} pts</span>
+                            <p className="text-xs text-gray-400 flex items-center mt-0.5">
+                                <TagIcon className="h-3 w-3 mr-1 opacity-70"/> {action.category}
+                            </p>
+                        </div>
                         </li>
                     ))}
-                 </ul>
-            )}
-             {goals.length > 5 && (
-                <div className="mt-6 text-center">
-                    <Link to="/goals" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
-                        View All Goals &rarr;
-                    </Link>
-                </div>
-            )}
-         </motion.div>
+                    </ul>
+                 )}
+            </motion.div>
+        </div>
       </div>
+       {/* Removed original Stats Grid and combined overview */} 
     </div>
   );
 } 

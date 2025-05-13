@@ -11,9 +11,10 @@ interface LayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/' },
-  { name: 'Goals', href: '/goals' },
-  { name: 'Actions', href: '/actions' },
+  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'Goals & Rewards', href: '/goals' },
+  // { name: 'Actions', href: '/actions' }, // Removed Actions link
+  // Profile link is handled separately in the desktop/mobile views below
 ];
 
 // Active NavLink style
@@ -65,6 +66,17 @@ export default function Layout({ children }: LayoutProps) {
                     {item.name}
                   </NavLink>
                 ))}
+                {/* Explicit Profile link for Desktop - kept separate */}
+                 {isAuthenticated && (
+                    <NavLink
+                        to="/profile"
+                        className={({ isActive }) =>
+                           `inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${isActive ? activeClassName : inactiveClassName}`
+                        }
+                      >
+                        Profile
+                      </NavLink>
+                  )}
               </div>
             </div>
 
@@ -146,6 +158,18 @@ export default function Layout({ children }: LayoutProps) {
                   {item.name}
                 </NavLink>
               ))}
+               {/* Explicit Profile link for Mobile - kept separate from main nav array */}
+               {isAuthenticated && (
+                   <NavLink
+                        to="/profile"
+                         className={({ isActive }) =>
+                            `block rounded-md px-3 py-2 text-base font-medium ${isActive ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'}`
+                         }
+                        onClick={() => setMobileMenuOpen(false)}
+                    >
+                        Profile
+                    </NavLink>
+                )}
             </div>
              {/* Mobile Auth Buttons/Profile Link */} 
             <div className="border-t border-gray-200 px-4 py-4">
@@ -158,18 +182,9 @@ export default function Layout({ children }: LayoutProps) {
                                 <div className="text-sm font-medium text-gray-500">{email}</div>
                              </div>
                         </div>
-                        <NavLink
-                            to="/profile"
-                             className={({ isActive }) =>
-                                `block rounded-md px-3 py-2 text-base font-medium mb-2 ${isActive ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'}`
-                             }
-                            onClick={() => setMobileMenuOpen(false)}
-                        >
-                            Your Profile
-                        </NavLink>
                         <button 
                             onClick={handleLogout} 
-                            className="w-full block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+                            className="w-full block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 text-left"
                         >
                            Logout
                         </button>
